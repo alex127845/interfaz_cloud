@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNRT - Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-page">
+        <!-- Barra Superior -->
+        <nav class="top-bar">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="navbar-brand mb-0">VNRT</span>
+                    <div class="d-flex align-items-center">
+                        <span class="me-3">Bienvenido, {{ user.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Contenido Principal -->
+        <div class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">VNRT - Slices</h1>
+                <p class="page-subtitle">Información general sobre los slices existentes</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="content-card">
+                <!-- Tabla de Slices -->
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Slice</th>
+                            <th>Descripción</th>
+                            <th>Creación</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slice in slices %}
+                        <tr onclick="selectSlice({{ slice.id }})" style="cursor: pointer;">
+                            <td><a href="#" class="text-decoration-none slice-link" data-slice-id="{{ slice.id }}">{{ slice.name }}</a></td>
+                            <td>{{ slice.description }}</td>
+                            <td>{{ slice.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                <span class="status-badge {{ 'status-running' if slice.status == 'RUNNING' else 'status-stopped' }}">
+                                    {{ slice.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not slices %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No hay slices disponibles</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                <!-- Panel de detalles del slice -->
+                <div id="sliceDetails" class="slice-details mt-4" style="display: none;">
+                    <h4>Detalles del Slice</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>ID:</strong> <span id="detailId"></span></p>
+                                    <p><strong>Nombre:</strong> <span id="detailName"></span></p>
+                                    <p><strong>Descripción:</strong> <span id="detailDescription"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Estado:</strong> <span id="detailStatus"></span></p>
+                                    <p><strong>Fecha de Creación:</strong> <span id="detailCreated"></span></p>
+                                    <p><strong>Propietario:</strong> <span id="detailOwner"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
