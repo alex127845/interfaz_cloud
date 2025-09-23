@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Red con Vis.js</title>
+    <style>
+        #mynetwork {
+            width: 100%;
+            height: 500px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mi Red con Vis.js</h1>
+    <div id="mynetwork"></div>
+
+    <!-- Botones para agregar nodos y conexiones -->
+    <button onclick="addNode()">Añadir Nodo</button>
+    <label for="fromNode">Conectar Nodo de:</label>
+    <select id="fromNode"></select>
+    <label for="toNode">a Nodo:</label>
+    <select id="toNode"></select>
+    <button onclick="addEdge()">Añadir Conexión</button>
+
+    <!-- Cargar Vis.js desde el nuevo CDN -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <script>
+        // Inicialización de los nodos y aristas
+        var nodes = new vis.DataSet([
+            { id: 1, label: 'Nodo 1' },
+            { id: 2, label: 'Nodo 2' },
+            { id: 3, label: 'Nodo 3' },
+            { id: 4, label: 'Nodo 4' }
+        ]);
+
+        var edges = new vis.DataSet([
+            { from: 1, to: 2 },
+            { from: 1, to: 3 },
+            { from: 2, to: 4 }
+        ]);
+
+        // Configuración de la red
+        var container = document.getElementById('mynetwork');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+        var options = {
+            nodes: {
+                shape: 'dot',
+                size: 16
+            },
+            edges: {
+                width: 2,
+                color: '#000000'
+            },
+            physics: {
+                enabled: true
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        // Función para añadir un nodo
+        var nodeId = 5;  // Inicia el contador de ID de nodos
+        function addNode() {
+            var newNode = { id: nodeId++, label: 'Nodo ' + nodeId };
+            nodes.add(newNode);
+            updateSelectOptions();  // Actualiza las opciones de los select
+        }
+
+        // Función para añadir una conexión entre dos nodos seleccionados
+        function addEdge() {
+            var fromNode = document.getElementById('fromNode').value;
+            var toNode = document.getElementById('toNode').value;
+
+            // Verifica que ambos nodos sean válidos y distintos
+            if (fromNode && toNode && fromNode !== toNode) {
+                var newEdge = { from: parseInt(fromNode), to: parseInt(toNode) };
+                edges.add(newEdge);
+            } else {
+                alert("Por favor selecciona dos nodos diferentes para conectar.");
+            }
+        }
+
+        // Función para actualizar las opciones de los select
+        function updateSelectOptions() {
+            var fromNodeSelect = document.getElementById('fromNode');
+            var toNodeSelect = document.getElementById('toNode');
+
+            // Limpia las opciones actuales
+            fromNodeSelect.innerHTML = '';
+            toNodeSelect.innerHTML = '';
+
+            // Agrega las opciones de los nodos
+            nodes.forEach(function(node) {
+                var optionFrom = document.createElement('option');
+                optionFrom.value = node.id;
+                optionFrom.text = node.label;
+                fromNodeSelect.appendChild(optionFrom);
+
+                var optionTo = document.createElement('option');
+                optionTo.value = node.id;
+                optionTo.text = node.label;
+                toNodeSelect.appendChild(optionTo);
+            });
+        }
+
+        // Inicializa las opciones de los select al cargar la página
+        updateSelectOptions();
+    </script>
+</body>
+</html>
