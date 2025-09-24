@@ -36,15 +36,45 @@ function selectSlice(sliceId) {
 function showSliceDetails(slice) {
     // Populate detail fields
     document.getElementById('detailId').textContent = slice.id;
-    document.getElementById('detailName').textContent = slice.name;
-    document.getElementById('detailDescription').textContent = slice.description;
-    document.getElementById('detailStatus').textContent = slice.status;
-    document.getElementById('detailCreated').textContent = slice.created_at;
+    document.getElementById('detailEstado').textContent = slice.estado;
+    document.getElementById('detailCreated').textContent = slice.fecha_creacion;
     document.getElementById('detailOwner').textContent = slice.owner;
+    document.getElementById('detailInstances').textContent = `${slice.instances.length} VM(s)`;
     
     // Apply status styling
-    const statusElement = document.getElementById('detailStatus');
-    statusElement.className = `status-badge ${slice.status === 'RUNNING' ? 'status-running' : 'status-stopped'}`;
+    const statusElement = document.getElementById('detailEstado');
+    statusElement.className = `status-badge ${slice.estado === 'RUNNING' ? 'status-running' : 'status-stopped'}`;
+    
+    // Update topology view link
+    const topologyLink = document.getElementById('viewTopologyLink');
+    topologyLink.href = `/slice/${slice.id}/topology`;
+    
+    // Show instances list
+    const instancesList = document.getElementById('instancesList');
+    instancesList.innerHTML = '';
+    
+    if (slice.instances && slice.instances.length > 0) {
+        const instancesTitle = document.createElement('div');
+        instancesTitle.innerHTML = '<h6><i class="fas fa-server me-2"></i>Instancias:</h6>';
+        instancesList.appendChild(instancesTitle);
+        
+        slice.instances.forEach(instance => {
+            const instanceCard = document.createElement('div');
+            instanceCard.className = 'col-md-6 mb-2';
+            instanceCard.innerHTML = `
+                <div class="card card-sm">
+                    <div class="card-body p-2">
+                        <h6 class="card-title mb-1">${instance.nombre}</h6>
+                        <small class="text-muted">
+                            CPU: ${instance.cpu} | RAM: ${instance.ram} | Storage: ${instance.storage}
+                            <br>Imagen: ${instance.imagen}
+                        </small>
+                    </div>
+                </div>
+            `;
+            instancesList.appendChild(instanceCard);
+        });
+    }
     
     // Show the details panel
     document.getElementById('sliceDetails').style.display = 'block';
