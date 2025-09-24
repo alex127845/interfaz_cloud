@@ -91,6 +91,17 @@
             {% endwith %}
 
             <form method="POST" id="create-slice-form">
+                <!-- Step 0: Slice Name -->
+                <div class="content-card mb-4">
+                    <h4><i class="fas fa-tag me-2"></i>Información del Slice</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="slice_name" class="form-label">Nombre del Slice</label>
+                            <input type="text" class="form-control" id="slice_name" name="slice_name" required placeholder="Ej: TEL141_2025-2_20206466">
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Step 1: Number of VMs -->
                 <div class="content-card mb-4">
                     <h4><i class="fas fa-server me-2"></i>Configuración de Instancias</h4>
