@@ -41,6 +41,17 @@
             border-color: #28a745;
             background-color: #f8f9fa;
         }
+        .node-counter {
+            background-color: #e9ecef;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="dashboard-body">
@@ -108,7 +119,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label for="num_vms" class="form-label">Número de VMs</label>
-                            <input type="number" class="form-control" id="num_vms" name="num_vms" min="1" max="10" value="2" required onchange="generateVMConfig()">
+                            <input type="number" class="form-control" id="num_vms" name="num_vms" min="1" max="10" value="2" required onchange="handleVMCountChange()">
                         </div>
                     </div>
                 </div>
@@ -149,9 +160,15 @@
                     <h4><i class="fas fa-pencil-ruler me-2"></i>Diseñador de Topología</h4>
                     <p class="text-muted">Usa los controles para crear nodos y conectarlos. La topología se guardará automáticamente.</p>
                     
+                    <div class="node-counter">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="node-count-display">Nodos: 0 / 2</span>
+                        <span class="text-muted ms-2">(Máximo basado en el número de VMs configuradas)</span>
+                    </div>
+                    
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-success btn-sm" onclick="addCustomNode()">
+                            <button type="button" class="btn btn-success btn-sm" id="add-node-btn" onclick="addCustomNode()">
                                 <i class="fas fa-plus me-1"></i>Agregar Nodo
                             </button>
                         </div>
@@ -240,6 +257,43 @@
             }
         }
 
+        function handleVMCountChange() {
+            generateVMConfig();
+            updateNodeCountDisplay();
+            
+            // Si hay una topología personalizada activa, validar los nodos existentes
+            if (customNodes && document.getElementById('topology_type').value === 'custom') {
+                validateExistingNodes();
+            }
+        }
+
+        function validateExistingNodes() {
+            const maxVMs = parseInt(document.getElementById('num_vms').value);
+            const currentNodes = customNodes.get();
+            
+            // Si hay más nodos que VMs permitidas, eliminar los excedentes
+            if (currentNodes.length > maxVMs) {
+                const nodesToRemove = currentNodes.slice(maxVMs);
+                const nodeIdsToRemove = nodesToRemove.map(node => node.id);
+                
+                // Eliminar nodos excedentes
+                customNodes.remove(nodeIdsToRemove);
+                
+                // Eliminar conexiones que involucren los nodos eliminados
+                const existingEdges = customEdges.get();
+                const edgesToRemove = existingEdges.filter(edge => 
+                    nodeIdsToRemove.includes(edge.from) || nodeIdsToRemove.includes(edge.to)
+                );
+                customEdges.remove(edgesToRemove.map(edge => edge.id));
+                
+                updateSelectOptions();
+                updateTopologyData();
+                
+                // Mostrar mensaje informativo
+                alert(`Se eliminaron ${nodesToRemove.length} nodo(s) porque excedían el límite de ${maxVMs} VMs configuradas.`);
+            }
+        }
+
         function selectTopology(type) {
             // Remove selected class from all options
             document.querySelectorAll('.topology-option').forEach(option => {
@@ -255,6 +309,7 @@
             if (type === 'custom') {
                 customCard.style.display = 'block';
                 initCustomTopology();
+                updateNodeCountDisplay();
             } else {
                 customCard.style.display = 'none';
             }
@@ -266,6 +321,7 @@
             // Initialize nodes and edges
             customNodes = new vis.DataSet([]);
             customEdges = new vis.DataSet([]);
+            customNodeId = 1;
             
             const data = { nodes: customNodes, edges: customEdges };
             const options = {
@@ -293,9 +349,18 @@
             customNetwork.on('afterDrawing', updateTopologyData);
             
             updateSelectOptions();
+            updateNodeCountDisplay();
         }
 
         function addCustomNode() {
+            const maxVMs = parseInt(document.getElementById('num_vms').value);
+            const currentNodeCount = customNodes ? customNodes.length : 0;
+            
+            if (currentNodeCount >= maxVMs) {
+                alert(`No se pueden agregar más nodos. El límite es ${maxVMs} nodos basado en el número de VMs configuradas.`);
+                return;
+            }
+            
             const newNode = {
                 id: customNodeId,
                 label: `VM${customNodeId}`,
@@ -305,6 +370,7 @@
             customNodeId++;
             updateSelectOptions();
             updateTopologyData();
+            updateNodeCountDisplay();
         }
 
         function addCustomEdge() {
@@ -312,6 +378,18 @@
             const toNode = document.getElementById('toNode').value;
             
             if (fromNode && toNode && fromNode !== toNode) {
+                // Verificar si ya existe una conexión entre estos nodos
+                const existingEdges = customEdges.get();
+                const edgeExists = existingEdges.some(edge => 
+                    (edge.from == fromNode && edge.to == toNode) || 
+                    (edge.from == toNode && edge.to == fromNode)
+                );
+                
+                if (edgeExists) {
+                    alert('Ya existe una conexión entre estos nodos.');
+                    return;
+                }
+                
                 const newEdge = {
                     from: parseInt(fromNode),
                     to: parseInt(toNode)
@@ -330,10 +408,34 @@
             fromSelect.innerHTML = '<option value="">Nodo origen</option>';
             toSelect.innerHTML = '<option value="">Nodo destino</option>';
             
-            customNodes.forEach(node => {
-                fromSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
-                toSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
-            });
+            if (customNodes) {
+                customNodes.forEach(node => {
+                    fromSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
+                    toSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
+                });
+            }
+        }
+
+        function updateNodeCountDisplay() {
+            const maxVMs = parseInt(document.getElementById('num_vms').value);
+            const currentNodeCount = customNodes ? customNodes.length : 0;
+            const display = document.getElementById('node-count-display');
+            const addBtn = document.getElementById('add-node-btn');
+            
+            if (display) {
+                display.textContent = `Nodos: ${currentNodeCount} / ${maxVMs}`;
+            }
+            
+            // Habilitar/deshabilitar botón de agregar nodo
+            if (addBtn) {
+                if (currentNodeCount >= maxVMs) {
+                    addBtn.disabled = true;
+                    addBtn.title = `Límite de ${maxVMs} nodos alcanzado`;
+                } else {
+                    addBtn.disabled = false;
+                    addBtn.title = 'Agregar un nuevo nodo';
+                }
+            }
         }
 
         function updateTopologyData() {
@@ -343,6 +445,7 @@
                     edges: customEdges.get()
                 };
                 document.getElementById('topology_data').value = JSON.stringify(topologyData);
+                updateNodeCountDisplay();
             }
         }
 
