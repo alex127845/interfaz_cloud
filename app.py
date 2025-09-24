@@ -6,7 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///slice_management.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost:3306/mydb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database
@@ -32,7 +32,7 @@ def create_sample_data():
     if not test_user:
         # Create test user
         admin_rol = Rol.query.filter_by(nombre_rol='admin').first()
-        test_user = User(nombre='admin', rol_id=admin_rol.id)
+        test_user = User(nombre='admin', rol_idrol=admin_rol.idrol)
         test_user.set_password('admin123')
         db.session.add(test_user)
         db.session.commit()
@@ -41,16 +41,18 @@ def create_sample_data():
         security = Security.query.first()
         sample_slices = [
             Slice(
+                nombre='TEL141_2025-2_20206466',
                 estado='RUNNING',
                 topologia='{"nodes":[{"id":1,"label":"VM1"},{"id":2,"label":"VM2"}],"edges":[{"from":1,"to":2}]}',
-                fecha_creacion=datetime(2025, 8, 18, 6, 27, 0),
-                security_id=security.id
+                fecha_creacion=datetime(2025, 8, 18, 6, 27, 0).date(),
+                security_idsecurity=security.idsecurity
             ),
             Slice(
+                nombre='TEL142_2025-2_20206467', 
                 estado='STOPPED', 
                 topologia='{"nodes":[{"id":1,"label":"VM1"}],"edges":[]}',
-                fecha_creacion=datetime(2025, 8, 19, 14, 15, 30),
-                security_id=security.id
+                fecha_creacion=datetime(2025, 8, 19, 14, 15, 30).date(),
+                security_idsecurity=security.idsecurity
             )
         ]
         
@@ -118,7 +120,7 @@ def register():
             db.session.add(user_rol)
             db.session.commit()
         
-        new_user = User(nombre=username, rol_id=user_rol.id)
+        new_user = User(nombre=username, rol_idrol=user_rol.idrol)
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
@@ -156,6 +158,7 @@ def create_slice():
     
     if request.method == 'POST':
         # Get form data
+        slice_name = request.form.get('slice_name', 'Unnamed Slice')
         num_vms = int(request.form['num_vms'])
         topology_type = request.form['topology_type']
         topology_data = request.form.get('topology_data', '')
@@ -169,8 +172,9 @@ def create_slice():
         
         # Create slice
         new_slice = Slice(
+            nombre=slice_name,
             estado='STOPPED',
-            security_id=security.id
+            security_idsecurity=security.idsecurity
         )
         
         # Set topology based on type
@@ -220,7 +224,7 @@ def create_slice():
             vm_image = request.form.get(f'vm_{i}_image', 'ubuntu:latest')
             
             instance = Instancia(
-                slice_id=new_slice.id,
+                slice_idslice=new_slice.idslice,
                 nombre=vm_name,
                 cpu=vm_cpu,
                 ram=vm_ram,
@@ -262,10 +266,11 @@ def slice_detail(slice_id):
         })
     
     return jsonify({
-        'id': slice_obj.id,
+        'id': slice_obj.idslice,
+        'nombre': slice_obj.nombre,
         'estado': slice_obj.estado,
         'topologia': slice_obj.get_topology_data(),
-        'fecha_creacion': slice_obj.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S'),
+        'fecha_creacion': slice_obj.fecha_creacion.strftime('%Y-%m-%d'),
         'instances': instances,
         'owner': user.nombre
     })

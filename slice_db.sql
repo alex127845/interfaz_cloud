@@ -18,7 +18,7 @@ USE `mydb` ;
 -- Table `mydb`.`security`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`security` (
-  `idsecurity` INT NOT NULL,
+  `idsecurity` INT NOT NULL AUTO_INCREMENT,
   `tipo` VARCHAR(45) NULL,
   `descripcion` VARCHAR(45) NULL,
   PRIMARY KEY (`idsecurity`))
@@ -29,9 +29,10 @@ ENGINE = InnoDB;
 -- Table `mydb`.`slice`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`slice` (
-  `idslice` INT NOT NULL,
+  `idslice` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(100) NULL,
   `estado` VARCHAR(45) NULL,
-  `topologia` VARCHAR(45) NULL,
+  `topologia` TEXT NULL,
   `fecha_creacion` DATE NULL,
   `fecha_upload` DATE NULL,
   `security_idsecurity` INT NOT NULL,
@@ -49,7 +50,7 @@ ENGINE = InnoDB;
 -- Table `mydb`.`rol`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`rol` (
-  `idrol` INT NOT NULL,
+  `idrol` INT NOT NULL AUTO_INCREMENT,
   `nombre_rol` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`idrol`))
 ENGINE = InnoDB;
@@ -59,9 +60,9 @@ ENGINE = InnoDB;
 -- Table `mydb`.`usuario`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`usuario` (
-  `idusuario` INT NOT NULL,
+  `idusuario` INT NOT NULL AUTO_INCREMENT,
   `nombre` VARCHAR(45) NULL,
-  `contrasenia` VARCHAR(45) NULL,
+  `contrasenia` VARCHAR(128) NULL,
   `rol_idrol` INT NOT NULL,
   PRIMARY KEY (`idusuario`, `rol_idrol`),
   INDEX `fk_usuario_rol1_idx` (`rol_idrol` ASC) VISIBLE,
@@ -77,12 +78,14 @@ ENGINE = InnoDB;
 -- Table `mydb`.`instancia`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`instancia` (
-  `idinstancia` INT NOT NULL,
+  `idinstancia` INT NOT NULL AUTO_INCREMENT,
   `slice_idslice` INT NOT NULL,
+  `nombre` VARCHAR(100) NULL,
   `estado` VARCHAR(45) NULL,
   `cpu` VARCHAR(45) NULL,
   `ram` VARCHAR(45) NULL,
   `storage` VARCHAR(45) NULL,
+  `imagen` VARCHAR(100) NULL,
   PRIMARY KEY (`idinstancia`, `slice_idslice`),
   INDEX `fk_instancia_slice1_idx` (`slice_idslice` ASC) VISIBLE,
   CONSTRAINT `fk_instancia_slice1`
@@ -119,7 +122,7 @@ ENGINE = InnoDB;
 -- Table `mydb`.`interfaz`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`interfaz` (
-  `idinterfaz` INT NOT NULL,
+  `idinterfaz` INT NOT NULL AUTO_INCREMENT,
   `nombre_interfaz` VARCHAR(45) NULL,
   `instancia_idinstancia` INT NOT NULL,
   `instancia_slice_idslice` INT NOT NULL,
