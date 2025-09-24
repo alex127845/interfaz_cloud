@@ -12,62 +12,41 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize database
 db.init_app(app)
 
-def create_sample_data():
-    """Create sample roles, security, users and slices for testing"""
-    # Create default roles
-    if not Rol.query.first():
-        admin_rol = Rol(nombre_rol='admin')
-        user_rol = Rol(nombre_rol='user')
-        db.session.add_all([admin_rol, user_rol])
-        db.session.commit()
-    
-    # Create default security
-    if not Security.query.first():
-        basic_security = Security(tipo='basic', descripcion='Basic security policy')
-        db.session.add(basic_security)
-        db.session.commit()
-    
-    # Check if test user already exists
-    test_user = User.query.filter_by(nombre='admin').first()
-    if not test_user:
-        # Create test user
-        admin_rol = Rol.query.filter_by(nombre_rol='admin').first()
-        test_user = User(nombre='admin', rol_idrol=admin_rol.idrol)
-        test_user.set_password('admin123')
-        db.session.add(test_user)
-        db.session.commit()
-        
-        # Create sample slices
-        security = Security.query.first()
-        sample_slices = [
-            Slice(
-                nombre='TEL141_2025-2_20206466',
-                estado='RUNNING',
-                topologia='{"nodes":[{"id":1,"label":"VM1"},{"id":2,"label":"VM2"}],"edges":[{"from":1,"to":2}]}',
-                fecha_creacion=datetime(2025, 8, 18, 6, 27, 0).date(),
-                security_idsecurity=security.idsecurity
-            ),
-            Slice(
-                nombre='TEL142_2025-2_20206467', 
-                estado='STOPPED', 
-                topologia='{"nodes":[{"id":1,"label":"VM1"}],"edges":[]}',
-                fecha_creacion=datetime(2025, 8, 19, 14, 15, 30).date(),
-                security_idsecurity=security.idsecurity
-            )
-        ]
-        
-        for slice_obj in sample_slices:
-            db.session.add(slice_obj)
-            slice_obj.usuarios.append(test_user)
-        
-        db.session.commit()
-        print("Sample data created successfully!")
-
 def initialize_database():
-    """Create database tables and sample data"""
+    """Create database tables - no sample data creation"""
     with app.app_context():
         db.create_all()
-        create_sample_data()
+        print("Database tables initialized!")
+
+def is_admin_user(user):
+    """Check if user has admin privileges (administrator or superadmin roles)"""
+    if not user or not user.rol:
+        return False
+    return user.rol.nombre_rol in ['administrador', 'superadmin']
+
+def can_access_slice(user, slice_obj):
+    """Check if user can access a specific slice based on their role"""
+    if not user:
+        return False
+    
+    # Admin users can access all slices
+    if is_admin_user(user):
+        return True
+    
+    # Regular users (usuariofinal, investigador) can only access their own slices
+    return user in slice_obj.usuarios
+
+def get_user_slices(user):
+    """Get slices that user can access based on their role"""
+    if not user:
+        return []
+    
+    # Admin users can see all slices
+    if is_admin_user(user):
+        return Slice.query.all()
+    
+    # Regular users can only see their own slices
+    return user.slices
 
 @app.route('/')
 def index():
@@ -78,23 +57,26 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
+    """Login page - authenticate against existing users in database"""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
+        # Query user from existing database
         user = User.query.filter_by(nombre=username).first()
         
         if user and user.check_password(password):
             session['user_id'] = user.id
             session['username'] = user.nombre
-            flash('Login successful!', 'success')
+            session['user_role'] = user.rol.nombre_rol if user.rol else 'unknown'
+            
+            flash(f'Login successful! Welcome {user.nombre}', 'success')
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'error')
     
     return render_template('login.html')
-
+    
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration page"""
@@ -130,6 +112,7 @@ def register():
     
     return render_template('register.html')
 
+
 @app.route('/logout')
 def logout():
     """Logout and clear session"""
@@ -139,21 +122,40 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    """Dashboard page - requires authentication"""
+    """Dashboard page - shows slices based on user role"""
     if 'user_id' not in session:
         flash('Please log in to access the dashboard', 'error')
         return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
-    user_slices = user.slices
+    if not user:
+        flash('User not found', 'error')
+        session.clear()
+        return redirect(url_for('login'))
     
-    return render_template('dashboard.html', user=user, slices=user_slices)
+    # Get slices based on user role
+    user_slices = get_user_slices(user)
+    
+    # Add role information for template
+    user_role = user.rol.nombre_rol if user.rol else 'unknown'
+    is_admin = is_admin_user(user)
+    
+    return render_template('dashboard.html', 
+                         user=user, 
+                         slices=user_slices,
+                         user_role=user_role,
+                         is_admin=is_admin)
 
 @app.route('/create_slice', methods=['GET', 'POST'])
 def create_slice():
-    """Create new slice page"""
+    """Create new slice page - only for authenticated users"""
     if 'user_id' not in session:
         flash('Please log in to create slices', 'error')
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash('User not found', 'error')
         return redirect(url_for('login'))
     
     if request.method == 'POST':
@@ -163,7 +165,7 @@ def create_slice():
         topology_type = request.form['topology_type']
         topology_data = request.form.get('topology_data', '')
         
-        # Create security (basic for now)
+        # Get or create basic security policy
         security = Security.query.first()
         if not security:
             security = Security(tipo='basic', descripcion='Basic security policy')
@@ -211,8 +213,7 @@ def create_slice():
         db.session.add(new_slice)
         db.session.commit()
         
-        # Add user to slice
-        user = User.query.get(session['user_id'])
+        # Add current user to slice
         new_slice.usuarios.append(user)
         
         # Create instances based on form data
@@ -241,15 +242,18 @@ def create_slice():
 
 @app.route('/slice/<int:slice_id>')
 def slice_detail(slice_id):
-    """Get slice details as JSON"""
+    """Get slice details as JSON - with role-based access control"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
-    slice_obj = Slice.query.get_or_404(slice_id)
     user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
     
-    # Check if slice belongs to current user
-    if user not in slice_obj.usuarios:
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
         return jsonify({'error': 'Access denied'}), 403
     
     # Get instances data
@@ -265,6 +269,9 @@ def slice_detail(slice_id):
             'estado': inst.estado
         })
     
+    # Get slice owners (users associated with this slice)
+    owners = [u.nombre for u in slice_obj.usuarios]
+    
     return jsonify({
         'id': slice_obj.idslice,
         'nombre': slice_obj.nombre,
@@ -272,25 +279,107 @@ def slice_detail(slice_id):
         'topologia': slice_obj.get_topology_data(),
         'fecha_creacion': slice_obj.fecha_creacion.strftime('%Y-%m-%d'),
         'instances': instances,
-        'owner': user.nombre
+        'owners': owners,
+        'current_user_role': user.rol.nombre_rol if user.rol else 'unknown'
     })
 
 @app.route('/slice/<int:slice_id>/topology')
 def slice_topology(slice_id):
-    """View slice topology with Vis.js"""
+    """View slice topology with Vis.js - with role-based access control"""
     if 'user_id' not in session:
         flash('Please log in to view slice topology', 'error')
         return redirect(url_for('login'))
     
-    slice_obj = Slice.query.get_or_404(slice_id)
     user = User.query.get(session['user_id'])
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('login'))
     
-    # Check if slice belongs to current user
-    if user not in slice_obj.usuarios:
-        flash('Access denied', 'error')
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
+        flash('Access denied - You can only view your own slices', 'error')
         return redirect(url_for('dashboard'))
     
-    return render_template('slice_topology.html', slice=slice_obj)
+    return render_template('slice_topology.html', slice=slice_obj, user=user)
+
+@app.route('/users')
+def list_users():
+    """List all users - only for admin users"""
+    if 'user_id' not in session:
+        flash('Please log in to access this page', 'error')
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        flash('Access denied - Admin privileges required', 'error')
+        return redirect(url_for('dashboard'))
+    
+    all_users = User.query.all()
+    return render_template('users.html', users=all_users, current_user=user)
+
+@app.route('/slice/<int:slice_id>/start', methods=['POST'])
+def start_slice(slice_id):
+    """Start a slice - with role-based access control"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Update slice state
+    slice_obj.estado = 'RUNNING'
+    
+    # Update all instances in this slice
+    for instance in slice_obj.instancias:
+        instance.estado = 'RUNNING'
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Slice {slice_obj.nombre} started successfully',
+        'new_state': slice_obj.estado
+    })
+
+@app.route('/slice/<int:slice_id>/stop', methods=['POST'])
+def stop_slice(slice_id):
+    """Stop a slice - with role-based access control"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Update slice state
+    slice_obj.estado = 'STOPPED'
+    
+    # Update all instances in this slice
+    for instance in slice_obj.instancias:
+        instance.estado = 'STOPPED'
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Slice {slice_obj.nombre} stopped successfully',
+        'new_state': slice_obj.estado
+    })
 
 if __name__ == '__main__':
     initialize_database()

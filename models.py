@@ -39,7 +39,7 @@ class User(db.Model):
     
     idusuario = db.Column('idusuario', db.Integer, primary_key=True)
     nombre = db.Column(db.String(45), unique=True, nullable=False)
-    contrasenia = db.Column(db.String(128), nullable=False)  # Extended for password hash
+    contrasenia = db.Column(db.String(128), nullable=False)
     rol_idrol = db.Column('rol_idrol', db.Integer, db.ForeignKey('rol.idrol'), nullable=False)
     
     # Relationships
@@ -55,9 +55,20 @@ class User(db.Model):
         return self.rol_idrol
     
     def set_password(self, password):
-        self.contrasenia = generate_password_hash(password)
+        """Set password in plain text (temporary - for development only)"""
+        self.contrasenia = password
     
     def check_password(self, password):
+        """Check password against plain text stored password"""
+        # For now, compare directly without hashing
+        return self.contrasenia == password
+    
+    def set_password_hashed(self, password):
+        """Set password with hash (for future use when migrating to hashed passwords)"""
+        self.contrasenia = generate_password_hash(password)
+    
+    def check_password_hashed(self, password):
+        """Check password against hashed password (for future use)"""
         return check_password_hash(self.contrasenia, password)
     
     def __repr__(self):
