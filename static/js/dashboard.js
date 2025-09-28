@@ -3,6 +3,51 @@
 // Global variable to track selected slice
 let selectedSliceRow = null;
 
+// Function to delete a slice with confirmation
+function deleteSlice(sliceId, sliceName) {
+    if (confirm(`¿Está seguro de que desea eliminar "${sliceName}"?\n\nEsta acción no se puede deshacer.`)) {
+        fetch(`/delete_slice/${sliceId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                showAlert('success', data.message);
+                // Reload page to update the table
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showAlert('danger', data.error || 'Error eliminando el slice');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting slice:', error);
+            showAlert('danger', 'Error de conexión eliminando el slice');
+        });
+    }
+}
+
+// Function to show alert messages
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Find the content area and prepend the alert
+    const contentCard = document.querySelector('.content-card');
+    if (contentCard) {
+        contentCard.insertAdjacentHTML('beforebegin', alertHtml);
+    }
+}
+
 // Function to select a slice and show its details
 function selectSlice(sliceId) {
     // Remove previous selection
