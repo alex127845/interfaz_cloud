@@ -9,7 +9,7 @@
     <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
-        #custom-topology-container {
+        #visjsNetwork {
             height: 400px;
             border: 1px solid #ddd;
             margin: 20px 0;
@@ -132,64 +132,26 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Topology Selection -->
+                <!-- Step 3: Topology Design -->
                 <div class="content-card mb-4">
-                    <h4><i class="fas fa-project-diagram me-2"></i>Selección de Topología</h4>
-                    <div class="topology-selection">
-                        <div class="topology-option" data-topology="star" onclick="selectTopology('star')">
-                            <i class="fas fa-star fa-2x mb-2"></i>
-                            <h6>Estrella</h6>
-                            <small>Todas las VMs conectadas a un nodo central</small>
-                        </div>
-                        <div class="topology-option" data-topology="tree" onclick="selectTopology('tree')">
-                            <i class="fas fa-sitemap fa-2x mb-2"></i>
-                            <h6>Árbol</h6>
-                            <small>Estructura jerárquica de conexiones</small>
-                        </div>
-                        <div class="topology-option" data-topology="custom" onclick="selectTopology('custom')">
-                            <i class="fas fa-paint-brush fa-2x mb-2"></i>
-                            <h6>Personalizada</h6>
-                            <small>Diseña tu propia topología</small>
-                        </div>
+                    <h4><i class="fas fa-project-diagram me-2"></i>Diseño de Topología</h4>
+                    <div class="mb-3">
+                        <label for="topologia" class="form-label">Agregar topología al diseño</label>
+                        <select id="topologia" class="form-select">
+                            <option value="estrella">Estrella</option>
+                            <option value="arbol">Árbol</option>
+                            <option value="anillo">Anillo</option>
+                        </select>
+                        <label for="num_nodos" class="form-label mt-2">Cantidad de nodos (máx 5)</label>
+                        <input type="number" class="form-control" id="num_nodos" value="3" min="2" max="5">
+                        <button type="button" class="btn btn-primary mt-2" id="agregarTopologia">Agregar al diseño</button>
                     </div>
-                    <input type="hidden" id="topology_type" name="topology_type" value="star" required>
-                </div>
-
-                <!-- Step 4: Custom Topology Designer -->
-                <div class="content-card mb-4" id="custom-topology-card" style="display: none;">
-                    <h4><i class="fas fa-pencil-ruler me-2"></i>Diseñador de Topología</h4>
-                    <p class="text-muted">Usa los controles para crear nodos y conectarlos. La topología se guardará automáticamente.</p>
-                    
-                    <div class="node-counter">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <span id="node-count-display">Nodos: 0 / 2</span>
-                        <span class="text-muted ms-2">(Máximo basado en el número de VMs configuradas)</span>
+                    <div>
+                        <label class="form-label">Diseño de Red (puedes combinar varias topologías)</label>
+                        <div id="visjsNetwork"></div>
+                        <button type="button" class="btn btn-secondary" id="habilitarPersonalizada">Editar libremente</button>
                     </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <button type="button" class="btn btn-success btn-sm" id="add-node-btn" onclick="addCustomNode()">
-                                <i class="fas fa-plus me-1"></i>Agregar Nodo
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <select id="fromNode" class="form-select form-select-sm">
-                                <option value="">Nodo origen</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <select id="toNode" class="form-select form-select-sm">
-                                <option value="">Nodo destino</option>
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-primary btn-sm" onclick="addCustomEdge()">
-                                <i class="fas fa-link"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="custom-topology-container"></div>
+                    <input type="hidden" id="topology_type" name="topology_type" value="custom" required>
                     <input type="hidden" id="topology_data" name="topology_data">
                 </div>
 
@@ -209,251 +171,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let customNetwork = null;
-        let customNodes = null;
-        let customEdges = null;
-        let customNodeId = 1;
-
-        function generateVMConfig() {
-            const numVMs = document.getElementById('num_vms').value;
-            const container = document.getElementById('vm-configs');
-            container.innerHTML = '';
-
-            for (let i = 1; i <= numVMs; i++) {
-                const vmCard = document.createElement('div');
-                vmCard.className = 'vm-config-card';
-                vmCard.innerHTML = `
-                    <h6><i class="fas fa-desktop me-2"></i>VM ${i}</h6>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" class="form-control" name="vm_${i}_name" value="VM${i}" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">CPU</label>
-                            <input type="text" class="form-control" name="vm_${i}_cpu" value="1" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">RAM</label>
-                            <input type="text" class="form-control" name="vm_${i}_ram" value="1GB" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Almacenamiento</label>
-                            <input type="text" class="form-control" name="vm_${i}_storage" value="10GB" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Imagen</label>
-                            <select class="form-select" name="vm_${i}_image" required>
-                                <option value="ubuntu:latest">Ubuntu Latest</option>
-                                <option value="centos:latest">CentOS Latest</option>
-                                <option value="debian:latest">Debian Latest</option>
-                                <option value="alpine:latest">Alpine Latest</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(vmCard);
-            }
-        }
-
-        function handleVMCountChange() {
-            generateVMConfig();
-            updateNodeCountDisplay();
-            
-            // Si hay una topología personalizada activa, validar los nodos existentes
-            if (customNodes && document.getElementById('topology_type').value === 'custom') {
-                validateExistingNodes();
-            }
-        }
-
-        function validateExistingNodes() {
-            const maxVMs = parseInt(document.getElementById('num_vms').value);
-            const currentNodes = customNodes.get();
-            
-            // Si hay más nodos que VMs permitidas, eliminar los excedentes
-            if (currentNodes.length > maxVMs) {
-                const nodesToRemove = currentNodes.slice(maxVMs);
-                const nodeIdsToRemove = nodesToRemove.map(node => node.id);
-                
-                // Eliminar nodos excedentes
-                customNodes.remove(nodeIdsToRemove);
-                
-                // Eliminar conexiones que involucren los nodos eliminados
-                const existingEdges = customEdges.get();
-                const edgesToRemove = existingEdges.filter(edge => 
-                    nodeIdsToRemove.includes(edge.from) || nodeIdsToRemove.includes(edge.to)
-                );
-                customEdges.remove(edgesToRemove.map(edge => edge.id));
-                
-                updateSelectOptions();
-                updateTopologyData();
-                
-                // Mostrar mensaje informativo
-                alert(`Se eliminaron ${nodesToRemove.length} nodo(s) porque excedían el límite de ${maxVMs} VMs configuradas.`);
-            }
-        }
-
-        function selectTopology(type) {
-            // Remove selected class from all options
-            document.querySelectorAll('.topology-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked option
-            document.querySelector(`[data-topology="${type}"]`).classList.add('selected');
-            document.getElementById('topology_type').value = type;
-            
-            // Show/hide custom topology designer
-            const customCard = document.getElementById('custom-topology-card');
-            if (type === 'custom') {
-                customCard.style.display = 'block';
-                initCustomTopology();
-                updateNodeCountDisplay();
-            } else {
-                customCard.style.display = 'none';
-            }
-        }
-
-        function initCustomTopology() {
-            const container = document.getElementById('custom-topology-container');
-            
-            // Initialize nodes and edges
-            customNodes = new vis.DataSet([]);
-            customEdges = new vis.DataSet([]);
-            customNodeId = 1;
-            
-            const data = { nodes: customNodes, edges: customEdges };
-            const options = {
-                nodes: {
-                    shape: 'circle',
-                    size: 25,
-                    font: { size: 14, color: '#333333' },
-                    borderWidth: 2,
-                    color: { background: '#28a745', border: '#1e7e34' }
-                },
-                edges: {
-                    width: 2,
-                    color: '#848484',
-                    smooth: { type: 'continuous' }
-                },
-                physics: {
-                    enabled: true,
-                    stabilization: { enabled: true, iterations: 100 }
-                }
-            };
-            
-            customNetwork = new vis.Network(container, data, options);
-            
-            // Update topology data when network changes
-            customNetwork.on('afterDrawing', updateTopologyData);
-            
-            updateSelectOptions();
-            updateNodeCountDisplay();
-        }
-
-        function addCustomNode() {
-            const maxVMs = parseInt(document.getElementById('num_vms').value);
-            const currentNodeCount = customNodes ? customNodes.length : 0;
-            
-            if (currentNodeCount >= maxVMs) {
-                alert(`No se pueden agregar más nodos. El límite es ${maxVMs} nodos basado en el número de VMs configuradas.`);
-                return;
-            }
-            
-            const newNode = {
-                id: customNodeId,
-                label: `VM${customNodeId}`,
-                color: { background: '#28a745', border: '#1e7e34' }
-            };
-            customNodes.add(newNode);
-            customNodeId++;
-            updateSelectOptions();
-            updateTopologyData();
-            updateNodeCountDisplay();
-        }
-
-        function addCustomEdge() {
-            const fromNode = document.getElementById('fromNode').value;
-            const toNode = document.getElementById('toNode').value;
-            
-            if (fromNode && toNode && fromNode !== toNode) {
-                // Verificar si ya existe una conexión entre estos nodos
-                const existingEdges = customEdges.get();
-                const edgeExists = existingEdges.some(edge => 
-                    (edge.from == fromNode && edge.to == toNode) || 
-                    (edge.from == toNode && edge.to == fromNode)
-                );
-                
-                if (edgeExists) {
-                    alert('Ya existe una conexión entre estos nodos.');
-                    return;
-                }
-                
-                const newEdge = {
-                    from: parseInt(fromNode),
-                    to: parseInt(toNode)
-                };
-                customEdges.add(newEdge);
-                updateTopologyData();
-            } else {
-                alert('Por favor selecciona dos nodos diferentes para conectar.');
-            }
-        }
-
-        function updateSelectOptions() {
-            const fromSelect = document.getElementById('fromNode');
-            const toSelect = document.getElementById('toNode');
-            
-            fromSelect.innerHTML = '<option value="">Nodo origen</option>';
-            toSelect.innerHTML = '<option value="">Nodo destino</option>';
-            
-            if (customNodes) {
-                customNodes.forEach(node => {
-                    fromSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
-                    toSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
-                });
-            }
-        }
-
-        function updateNodeCountDisplay() {
-            const maxVMs = parseInt(document.getElementById('num_vms').value);
-            const currentNodeCount = customNodes ? customNodes.length : 0;
-            const display = document.getElementById('node-count-display');
-            const addBtn = document.getElementById('add-node-btn');
-            
-            if (display) {
-                display.textContent = `Nodos: ${currentNodeCount} / ${maxVMs}`;
-            }
-            
-            // Habilitar/deshabilitar botón de agregar nodo
-            if (addBtn) {
-                if (currentNodeCount >= maxVMs) {
-                    addBtn.disabled = true;
-                    addBtn.title = `Límite de ${maxVMs} nodos alcanzado`;
-                } else {
-                    addBtn.disabled = false;
-                    addBtn.title = 'Agregar un nuevo nodo';
-                }
-            }
-        }
-
-        function updateTopologyData() {
-            if (customNodes && customEdges) {
-                const topologyData = {
-                    nodes: customNodes.get(),
-                    edges: customEdges.get()
-                };
-                document.getElementById('topology_data').value = JSON.stringify(topologyData);
-                updateNodeCountDisplay();
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            generateVMConfig();
-            selectTopology('star');
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/crear_slice.js') }}"></script>
 </body>
 </html>
