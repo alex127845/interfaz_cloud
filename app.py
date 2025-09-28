@@ -381,6 +381,69 @@ def stop_slice(slice_id):
         'new_state': slice_obj.estado
     })
 
+@app.route('/delete_slice/<int:slice_id>', methods=['POST'])
+def delete_slice(slice_id):
+    """Delete a slice - with role-based access control"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    slice_name = slice_obj.nombre or f'Slice #{slice_id}'
+    
+    try:
+        # Delete the slice (cascade will handle related instances and interfaces)
+        db.session.delete(slice_obj)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Slice {slice_name} deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Error deleting slice: {str(e)}'
+        }), 500
+
+@app.route('/download_topology/<int:slice_id>')
+def download_topology(slice_id):
+    """Download slice topology as JSON - with role-based access control"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    slice_obj = Slice.query.get_or_404(slice_id)
+    
+    # Check if user can access this slice
+    if not can_access_slice(user, slice_obj):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Get topology data
+    topology_data = slice_obj.get_topology_data()
+    if not topology_data:
+        topology_data = {'nodes': [], 'edges': []}
+    
+    # Create response with proper headers for file download
+    response = jsonify(topology_data)
+    slice_name = slice_obj.nombre or f'slice_{slice_id}'
+    response.headers['Content-Disposition'] = f'attachment; filename="{slice_name}_topology.json"'
+    response.headers['Content-Type'] = 'application/json'
+    
+    return response
+
 if __name__ == '__main__':
     initialize_database()
     app.run(debug=True, host='0.0.0.0', port=5000)
