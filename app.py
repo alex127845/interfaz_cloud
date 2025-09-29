@@ -238,7 +238,7 @@ def create_slice():
         flash('Slice created successfully!', 'success')
         return redirect(url_for('dashboard'))
     
-    return render_template('create_slice.html')
+    return render_template('create_slice2.html')
 
 @app.route('/slice/<int:slice_id>')
 def slice_detail(slice_id):

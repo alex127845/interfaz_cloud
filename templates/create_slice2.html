@@ -327,20 +327,20 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <input type="text" class="form-control" id="slice-name" placeholder="Nombre del slice" required>
+                            <input type="text" class="form-control" id="slice-name" name="slice_name" placeholder="Nombre del slice" required>
                             <label for="slice-name">Nombre del Slice</label>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <input type="number" class="form-control" id="vm-count" placeholder="Número de VMs" min="2" max="20" value="3" required>
+                            <input type="number" class="form-control" id="vm-count" name="num_vms" placeholder="Número de VMs" min="2" max="20" value="3" required>
                             <label for="vm-count">Número de VMs</label>
                         </div>
                     </div>
                 </div>
                 
                 <div class="form-floating">
-                    <textarea class="form-control" id="slice-description" placeholder="Descripción" style="height: 100px"></textarea>
+                    <textarea class="form-control" id="slice-description" name="slice_description" placeholder="Descripción" style="height: 100px"></textarea>
                     <label for="slice-description">Descripción (opcional)</label>
                 </div>
                 
@@ -459,7 +459,7 @@
                 </div>
 
                 <input type="hidden" id="topology_data" name="topology_data">
-
+                <input type="hidden" id="topology_type" name="topology_type" value="custom">
 
                 
                 <div class="d-flex justify-content-between">
@@ -509,7 +509,7 @@
                     <button type="button" class="btn btn-outline-secondary" onclick="previousStep()">
                         <i class="fas fa-arrow-left me-2"></i>Anterior
                     </button>
-                    <button type="button" class="btn btn-gradient btn-lg" onclick="createSlice()">
+                    <button type="submit" class="btn btn-gradient btn-lg">
                         <i class="fas fa-rocket me-2"></i>Crear Slice
                     </button>
                 </div>
@@ -607,6 +607,8 @@
                         alert('La topología debe tener al menos 2 nodos');
                         return false;
                     }
+                    // Update topology data before proceeding
+                    updateTopologyData();
                     return true;
                 default:
                     return true;
@@ -626,13 +628,13 @@
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="vm-${i}-name" value="VM${i}" required>
+                                <input type="text" class="form-control" id="vm-${i}-name" name="vm_${i}_name" value="VM${i}" required>
                                 <label for="vm-${i}-name">Nombre</label>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="form-floating">
-                                <select class="form-select" id="vm-${i}-cpu" required>
+                                <select class="form-select" id="vm-${i}-cpu" name="vm_${i}_cpu" required>
                                     <option value="1">1 Core</option>
                                     <option value="2">2 Cores</option>
                                     <option value="4">4 Cores</option>
@@ -642,7 +644,7 @@
                         </div>
                         <div class="col-md-2">
                             <div class="form-floating">
-                                <select class="form-select" id="vm-${i}-ram" required>
+                                <select class="form-select" id="vm-${i}-ram" name="vm_${i}_ram" required>
                                     <option value="1GB">1GB</option>
                                     <option value="2GB">2GB</option>
                                     <option value="4GB">4GB</option>
@@ -653,7 +655,7 @@
                         </div>
                         <div class="col-md-2">
                             <div class="form-floating">
-                                <select class="form-select" id="vm-${i}-storage" required>
+                                <select class="form-select" id="vm-${i}-storage" name="vm_${i}_storage" required>
                                     <option value="10GB">10GB</option>
                                     <option value="20GB">20GB</option>
                                     <option value="50GB">50GB</option>
@@ -664,7 +666,7 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-floating">
-                                <select class="form-select" id="vm-${i}-image" required>
+                                <select class="form-select" id="vm-${i}-image" name="vm_${i}_image" required>
                                     <option value="ubuntu:latest">Ubuntu 22.04</option>
                                     <option value="centos:latest">CentOS 9</option>
                                     <option value="debian:latest">Debian 12</option>
@@ -960,6 +962,14 @@
             document.getElementById('edge-count').textContent = `Conexiones: ${edges.length}`;
         }
 
+        function updateTopologyData() {
+            const topologyData = {
+                nodes: nodes.get(),
+                edges: edges.get()
+            };
+            document.getElementById('topology_data').value = JSON.stringify(topologyData);
+        }
+
         function generateReview() {
             // Basic information
             document.getElementById('review-name').textContent = 
@@ -997,88 +1007,6 @@
                     <div class="col-md-4">${vmImage}</div>
                 `;
                 vmReviewList.appendChild(vmReview);
-            }
-        }
-
-        function createSlice() {
-            // Prepare data for submission
-            const sliceData = {
-                name: document.getElementById('slice-name').value,
-                description: document.getElementById('slice-description').value,
-                vmCount: parseInt(document.getElementById('vm-count').value),
-                vms: [],
-                topology: {
-                    type: topologyType,
-                    nodes: nodes.get(),
-                    edges: edges.get()
-                }
-            };
-            
-            // Collect VM configurations
-            for (let i = 1; i <= sliceData.vmCount; i++) {
-                sliceData.vms.push({
-                    name: document.getElementById(`vm-${i}-name`).value,
-                    cpu: document.getElementById(`vm-${i}-cpu`).value,
-                    ram: document.getElementById(`vm-${i}-ram`).value,
-                    storage: document.getElementById(`vm-${i}-storage`).value,
-                    image: document.getElementById(`vm-${i}-image`).value
-                });
-            }
-            
-            // Simulate slice creation
-            console.log('Creando slice:', sliceData);
-            
-            // Show loading state
-            const createBtn = document.querySelector('button[onclick="createSlice()"]');
-            const originalText = createBtn.innerHTML;
-            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando Slice...';
-            createBtn.disabled = true;
-            
-            // Simulate API call
-            setTimeout(() => {
-                alert('¡Slice creado exitosamente!');
-                // In a real application, redirect to dashboard or slice details
-                console.log('Slice creado con ID:', Date.now());
-                
-                // Reset button
-                createBtn.innerHTML = originalText;
-                createBtn.disabled = false;
-            }, 2000);
-        }
-
-        // Listen for VM count changes to update topology limits
-        document.getElementById('vm-count').addEventListener('change', function() {
-            const newCount = parseInt(this.value);
-            
-            // If we're in step 3 and have existing nodes, validate
-            if (currentStep === 3 && nodes.length > newCount) {
-                alert(`Reduciendo el número de nodos a ${newCount} para coincidir con las VMs configuradas.`);
-                
-                // Remove excess nodes
-                const nodeArray = nodes.get();
-                const nodesToRemove = nodeArray.slice(newCount);
-                nodes.remove(nodesToRemove.map(n => n.id));
-                
-                // Remove edges connected to removed nodes
-                const edgeArray = edges.get();
-                const edgesToRemove = edgeArray.filter(edge => 
-                    nodesToRemove.some(node => node.id === edge.from || node.id === edge.to)
-                );
-                edges.remove(edgesToRemove.map(e => e.id));
-                
-                updateStats();
-            }
-        });
-
-
-        function updateTopologyData() {
-            if (customNodes && customEdges) {
-                const topologyData = {
-                    nodes: customNodes.get(),
-                    edges: customEdges.get()
-                };
-                document.getElementById('topology_data').value = JSON.stringify(topologyData);
-                updateNodeCountDisplay();
             }
         }
     </script>
