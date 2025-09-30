@@ -399,6 +399,7 @@
                         </div>
 
                         <!-- Custom Topology Controls -->
+                        <!-- Agregar estos botones a la sección de custom-controls (línea 402-420) -->
                         <div id="custom-controls">
                             <h6>Controles</h6>
                             <button type="button" class="btn btn-success btn-sm w-100 mb-2" onclick="addNode()">
@@ -410,6 +411,44 @@
                             <button type="button" class="btn btn-warning btn-sm w-100 mb-2" onclick="clearTopology()">
                                 <i class="fas fa-trash me-1"></i>Limpiar Todo
                             </button>
+                            
+                            <!-- NUEVOS CONTROLES DE NAVEGACIÓN -->
+                            <hr class="my-3">
+                            <h6><i class="fas fa-search-location me-2"></i>Navegación</h6>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-info btn-sm w-100" onclick="centerView()" title="Centrar Vista">
+                                        <i class="fas fa-crosshairs"></i>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-secondary btn-sm w-100" onclick="fitToScreen()" title="Ajustar a Pantalla">
+                                        <i class="fas fa-expand-arrows-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="zoomIn()" title="Zoom In">
+                                        <i class="fas fa-search-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="zoomOut()" title="Zoom Out">
+                                        <i class="fas fa-search-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <small class="text-muted">Zoom:</small>
+                                    <span id="zoom-level" class="badge bg-light text-dark">100%</span>
+                                </div>
+                                <input type="range" class="form-range" id="zoom-slider" min="0.2" max="3" step="0.1" value="1" oninput="setZoom(this.value)">
+                            </div>
                             
                             <div class="mt-3">
                                 <small class="text-muted">
@@ -527,12 +566,180 @@
         let connectionMode = false;
         let selectedNode = null;
         let topologyType = 'custom';
+        // Variables globales adicionales
+        let currentScale = 1;
+        let viewPosition = { x: 0, y: 0 };
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeNetworkVisualization();
             generateVMConfiguration();
         });
+
+        // Función para centrar la vista en los nodos
+        function centerView() {
+            if (network && nodes.length > 0) {
+                network.fit({
+                    animation: {
+                        duration: 800,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+                updateZoomDisplay();
+            } else {
+                // Si no hay nodos, centrar en el origen
+                network.moveTo({
+                    position: { x: 0, y: 0 },
+                    scale: 1,
+                    animation: {
+                        duration: 500,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+                currentScale = 1;
+                updateZoomDisplay();
+            }
+        }
+
+        // Función para ajustar toda la topología en pantalla
+        function fitToScreen() {
+            if (network) {
+                if (nodes.length > 0) {
+                    network.fit({
+                        animation: {
+                            duration: 800,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+                } else {
+                    network.moveTo({
+                        position: { x: 0, y: 0 },
+                        scale: 1,
+                        animation: {
+                            duration: 500,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+                }
+                updateZoomDisplay();
+            }
+        }
+
+        // Función para hacer zoom in
+        function zoomIn() {
+            if (network) {
+                currentScale = Math.min(currentScale * 1.2, 3);
+                const position = network.getViewPosition();
+                
+                network.moveTo({
+                    position: position,
+                    scale: currentScale,
+                    animation: {
+                        duration: 300,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+                updateZoomDisplay();
+            }
+        }
+
+        // Función para hacer zoom out
+        function zoomOut() {
+            if (network) {
+                currentScale = Math.max(currentScale / 1.2, 0.2);
+                const position = network.getViewPosition();
+                
+                network.moveTo({
+                    position: position,
+                    scale: currentScale,
+                    animation: {
+                        duration: 300,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+                updateZoomDisplay();
+            }
+        }
+
+        // Función para establecer zoom específico
+        function setZoom(scale) {
+            if (network) {
+                currentScale = parseFloat(scale);
+                const position = network.getViewPosition();
+                
+                network.moveTo({
+                    position: position,
+                    scale: currentScale,
+                    animation: {
+                        duration: 200,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+                updateZoomDisplay();
+            }
+        }
+
+        // Función para actualizar el display del zoom
+        function updateZoomDisplay() {
+            const zoomPercentage = Math.round(currentScale * 100);
+            document.getElementById('zoom-level').textContent = `${zoomPercentage}%`;
+            document.getElementById('zoom-slider').value = currentScale;
+        }
+
+        // Modificar la función initializeNetworkVisualization existente
+        function initializeNetworkVisualization() {
+            const container = document.getElementById('network-container');
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    shape: 'circle',
+                    size: 30,
+                    font: { size: 14, color: '#333' },
+                    borderWidth: 3,
+                    color: {
+                        background: '#28a745',
+                        border: '#1e7e34',
+                        highlight: { background: '#20c997', border: '#17a2b8' }
+                    }
+                },
+                edges: {
+                    width: 3,
+                    color: '#6c757d',
+                    smooth: { type: 'continuous' }
+                },
+                physics: {
+                    enabled: true,
+                    stabilization: { iterations: 100 }
+                },
+                interaction: {
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true
+                }
+            };
+
+            network = new vis.Network(container, data, options);
+            
+            // Event listeners para actualizar el zoom
+            network.on('zoom', function(params) {
+                currentScale = params.scale;
+                updateZoomDisplay();
+            });
+            
+            network.on('dragEnd', function(params) {
+                viewPosition = network.getViewPosition();
+            });
+            
+            // Handle node clicks for connection mode
+            network.on('click', function(params) {
+                if (connectionMode && params.nodes.length > 0) {
+                    handleNodeClick(params.nodes[0]);
+                }
+            });
+
+            updateStats();
+            updateZoomDisplay();
+        }
 
         function nextStep() {
             // Validate current step
@@ -854,6 +1061,9 @@
             }
             
             updateStats();
+            setTimeout(() => {
+                centerView();
+            }, 500);
         }
 
         function generateStarTopology(vmCount) {
