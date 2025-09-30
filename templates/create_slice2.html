@@ -126,6 +126,50 @@
             overflow: hidden;
         }
 
+        /* Controles de navegación flotantes */
+        .navigation-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-width: 200px;
+        }
+
+        .nav-control-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .nav-control-btn {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .nav-control-btn:hover {
+            background: #f8f9fa;
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .zoom-display {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
         .custom-controls {
             position: absolute;
             top: 15px;
@@ -399,7 +443,6 @@
                         </div>
 
                         <!-- Custom Topology Controls -->
-                        <!-- Agregar estos botones a la sección de custom-controls (línea 402-420) -->
                         <div id="custom-controls">
                             <h6>Controles</h6>
                             <button type="button" class="btn btn-success btn-sm w-100 mb-2" onclick="addNode()">
@@ -411,44 +454,6 @@
                             <button type="button" class="btn btn-warning btn-sm w-100 mb-2" onclick="clearTopology()">
                                 <i class="fas fa-trash me-1"></i>Limpiar Todo
                             </button>
-                            
-                            <!-- NUEVOS CONTROLES DE NAVEGACIÓN -->
-                            <hr class="my-3">
-                            <h6><i class="fas fa-search-location me-2"></i>Navegación</h6>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-info btn-sm w-100" onclick="centerView()" title="Centrar Vista">
-                                        <i class="fas fa-crosshairs"></i>
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-secondary btn-sm w-100" onclick="fitToScreen()" title="Ajustar a Pantalla">
-                                        <i class="fas fa-expand-arrows-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="zoomIn()" title="Zoom In">
-                                        <i class="fas fa-search-plus"></i>
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="zoomOut()" title="Zoom Out">
-                                        <i class="fas fa-search-minus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-2">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <small class="text-muted">Zoom:</small>
-                                    <span id="zoom-level" class="badge bg-light text-dark">100%</span>
-                                </div>
-                                <input type="range" class="form-range" id="zoom-slider" min="0.2" max="3" step="0.1" value="1" oninput="setZoom(this.value)">
-                            </div>
                             
                             <div class="mt-3">
                                 <small class="text-muted">
@@ -490,6 +495,49 @@
                     
                     <div class="topology-visualizer">
                         <div id="network-container"></div>
+                        
+                        <!-- CONTROLES DE NAVEGACIÓN FLOTANTES -->
+                        <div class="navigation-controls">
+                            <div class="nav-control-header">
+                                <i class="fas fa-search-location me-2"></i>
+                                Navegación
+                            </div>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <button type="button" class="nav-control-btn w-100" onclick="centerView()" title="Centrar Vista">
+                                        <i class="fas fa-crosshairs"></i>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="nav-control-btn w-100" onclick="fitToScreen()" title="Ajustar a Pantalla">
+                                        <i class="fas fa-expand-arrows-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <button type="button" class="nav-control-btn w-100" onclick="zoomIn()" title="Zoom In">
+                                        <i class="fas fa-search-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="nav-control-btn w-100" onclick="zoomOut()" title="Zoom Out">
+                                        <i class="fas fa-search-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="zoom-display">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <small class="text-muted">Zoom:</small>
+                                    <span id="zoom-level" class="badge bg-light text-dark">100%</span>
+                                </div>
+                                <input type="range" class="form-range form-range-sm" id="zoom-slider" min="0.2" max="3" step="0.1" value="1" oninput="setZoom(this.value)">
+                            </div>
+                        </div>
+                        
                         <div class="topology-stats">
                             <span id="node-count">Nodos: 0</span> | 
                             <span id="edge-count">Conexiones: 0</span>
@@ -566,7 +614,6 @@
         let connectionMode = false;
         let selectedNode = null;
         let topologyType = 'custom';
-        // Variables globales adicionales
         let currentScale = 1;
         let viewPosition = { x: 0, y: 0 };
 
@@ -686,7 +733,6 @@
             document.getElementById('zoom-slider').value = currentScale;
         }
 
-        // Modificar la función initializeNetworkVisualization existente
         function initializeNetworkVisualization() {
             const container = document.getElementById('network-container');
             const data = { nodes: nodes, edges: edges };
@@ -887,49 +933,6 @@
                 `;
                 container.appendChild(vmCard);
             }
-        }
-
-        function initializeNetworkVisualization() {
-            const container = document.getElementById('network-container');
-            const data = { nodes: nodes, edges: edges };
-            const options = {
-                nodes: {
-                    shape: 'circle',
-                    size: 30,
-                    font: { size: 14, color: '#333' },
-                    borderWidth: 3,
-                    color: {
-                        background: '#28a745',
-                        border: '#1e7e34',
-                        highlight: { background: '#20c997', border: '#17a2b8' }
-                    }
-                },
-                edges: {
-                    width: 3,
-                    color: '#6c757d',
-                    smooth: { type: 'continuous' }
-                },
-                physics: {
-                    enabled: true,
-                    stabilization: { iterations: 100 }
-                },
-                interaction: {
-                    dragNodes: true,
-                    dragView: true,
-                    zoomView: true
-                }
-            };
-
-            network = new vis.Network(container, data, options);
-            
-            // Handle node clicks for connection mode
-            network.on('click', function(params) {
-                if (connectionMode && params.nodes.length > 0) {
-                    handleNodeClick(params.nodes[0]);
-                }
-            });
-
-            updateStats();
         }
 
         function selectTopologyType(type) {
@@ -1208,11 +1211,11 @@
                 const vmImage = document.getElementById(`vm-${i}-image`).value;
                 
                 const vmReview = document.createElement('div');
-                vmReview.className = 'row mb-2 p-2 bg-light rounded';
+                vmReview.className = 'row mb-2';
                 vmReview.innerHTML = `
                     <div class="col-md-2"><strong>${vmName}</strong></div>
-                    <div class="col-md-2">${vmCpu} CPU</div>
-                    <div class="col-md-2">${vmRam} RAM</div>
+                    <div class="col-md-2">${vmCpu} Core(s)</div>
+                    <div class="col-md-2">${vmRam}</div>
                     <div class="col-md-2">${vmStorage}</div>
                     <div class="col-md-4">${vmImage}</div>
                 `;
