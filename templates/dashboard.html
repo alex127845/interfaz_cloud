@@ -82,6 +82,11 @@
                                 <a href="{{ url_for('download_topology', slice_id=slice.id) }}" class="btn btn-sm btn-outline-success me-1" title="Descargar JSON de Topología">
                                     <i class="fas fa-download me-1"></i>JSON
                                 </a>
+
+                                {% if slice.estado == "STOPPED" %}
+                                    <a href="/edit_slice/{{ slice.id }}" class="btn btn-sm btn-outline-warning me-1">Editar</a>
+                                {% endif %}
+
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteSlice({{ slice.id }}, '{{ slice.nombre or 'Slice #' + slice.id|string }}')" title="Eliminar Slice">
                                     <i class="fas fa-trash me-1"></i>Eliminar
                                 </button>
