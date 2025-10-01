@@ -185,49 +185,38 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="topology-visualizer">
                         <div id="network-container"></div>
                         
-                        <!-- CONTROLES DE NAVEGACIÓN FLOTANTES -->
+                        <!-- CONTROLES DE DIRECCIÓN (IZQUIERDA) -->
+                        <div class="direction-controls">
+                            <div class="direction-btn up" onclick="moveView('up')" title="Mover hacia arriba">
+                                <i class="fas fa-chevron-up"></i>
+                            </div>
+                            <div class="direction-btn left" onclick="moveView('left')" title="Mover hacia la izquierda">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="direction-btn center" onclick="centerView()" title="Centrar vista">
+                                <i class="fas fa-crosshairs"></i>
+                            </div>
+                            <div class="direction-btn right" onclick="moveView('right')" title="Mover hacia la derecha">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                            <div class="direction-btn down" onclick="moveView('down')" title="Mover hacia abajo">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- CONTROLES DE ZOOM (DERECHA) -->
                         <div class="navigation-controls">
-                            <div class="nav-control-header">
-                                <i class="fas fa-search-location me-2"></i>
-                                Navegación
+                            <div class="nav-control-btn" onclick="fitToScreen()" title="Ajustar a pantalla">
+                                <i class="fas fa-expand-arrows-alt"></i>
                             </div>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <button type="button" class="nav-control-btn w-100" onclick="centerView()" title="Centrar Vista">
-                                        <i class="fas fa-crosshairs"></i>
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button type="button" class="nav-control-btn w-100" onclick="fitToScreen()" title="Ajustar a Pantalla">
-                                        <i class="fas fa-expand-arrows-alt"></i>
-                                    </button>
-                                </div>
+                            <div class="nav-control-btn" onclick="zoomOut()" title="Zoom Out">
+                                <i class="fas fa-minus"></i>
                             </div>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <button type="button" class="nav-control-btn w-100" onclick="zoomIn()" title="Zoom In">
-                                        <i class="fas fa-search-plus"></i>
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button type="button" class="nav-control-btn w-100" onclick="zoomOut()" title="Zoom Out">
-                                        <i class="fas fa-search-minus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="zoom-display">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <small class="text-muted">Zoom:</small>
-                                    <span id="zoom-level" class="badge bg-light text-dark">100%</span>
-                                </div>
-                                <input type="range" class="form-range form-range-sm" id="zoom-slider" min="0.2" max="3" step="0.1" value="1" oninput="setZoom(this.value)">
+                            <div class="nav-control-btn" onclick="zoomIn()" title="Zoom In">
+                                <i class="fas fa-plus"></i>
                             </div>
                         </div>
                         
@@ -236,6 +225,7 @@
                             <span id="edge-count">Conexiones: 0</span>
                         </div>
                     </div>
+                    
                 </div>
 
                 <input type="hidden" id="topology_data" name="topology_data">
@@ -315,6 +305,38 @@
             initializeNetworkVisualization();
             generateVMConfiguration();
         });
+
+        // Función para mover la vista en direcciones específicas
+        function moveView(direction) {
+            if (network) {
+                const currentPosition = network.getViewPosition();
+                const moveDistance = 100;
+                let newPosition = { ...currentPosition };
+
+                switch(direction) {
+                    case 'up':
+                        newPosition.y -= moveDistance;
+                        break;
+                    case 'down':
+                        newPosition.y += moveDistance;
+                        break;
+                    case 'left':
+                        newPosition.x -= moveDistance;
+                        break;
+                    case 'right':
+                        newPosition.x += moveDistance;
+                        break;
+                }
+
+                network.moveTo({
+                    position: newPosition,
+                    animation: {
+                        duration: 300,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }
+        }
 
         // Función para centrar la vista en los nodos
         function centerView() {
@@ -400,6 +422,9 @@
                 updateZoomDisplay();
             }
         }
+
+
+
 
         // Función para establecer zoom específico
         function setZoom(scale) {
