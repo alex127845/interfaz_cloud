@@ -146,6 +146,7 @@ def dashboard():
                          user_role=user_role,
                          is_admin=is_admin)
 
+
 @app.route('/create_slice', methods=['GET', 'POST'])
 def create_slice():
     """Create new slice page - only for authenticated users"""
@@ -164,6 +165,7 @@ def create_slice():
         num_vms = int(request.form['num_vms'])
         topology_type = request.form['topology_type']
         topology_data = request.form.get('topology_data', '')
+        global_image = request.form.get('global_image', 'ubuntu:latest')  # 🟢 NUEVA LÍNEA
         
         # Get or create basic security policy
         security = Security.query.first()
@@ -222,7 +224,7 @@ def create_slice():
             vm_cpu = request.form.get(f'vm_{i}_cpu', '1')
             vm_ram = request.form.get(f'vm_{i}_ram', '1GB')
             vm_storage = request.form.get(f'vm_{i}_storage', '10GB')
-            vm_image = request.form.get(f'vm_{i}_image', 'ubuntu:latest')
+            # vm_image = request.form.get(f'vm_{i}_image', 'ubuntu:latest')  # 🔴 ELIMINAR ESTA LÍNEA
             
             instance = Instancia(
                 slice_idslice=new_slice.idslice,
@@ -230,7 +232,7 @@ def create_slice():
                 cpu=vm_cpu,
                 ram=vm_ram,
                 storage=vm_storage,
-                imagen=vm_image
+                imagen=global_image  # 🟢 CAMBIAR A IMAGEN GLOBAL
             )
             db.session.add(instance)
         
@@ -494,6 +496,7 @@ def edit_slice(slice_id):
                          current_topology=current_topology,
                          instances_data=instances_data)
 
+
 @app.route('/update_slice/<int:slice_id>', methods=['POST'])
 def update_slice(slice_id):
     """Update slice configuration - with warning message"""
@@ -553,7 +556,7 @@ def update_slice(slice_id):
         
         return jsonify({
             'success': True,
-            'message': '⚠️ ADVERTENCIA: Los cambios realizados son permanentes. No hay forma de recuperar la configuración anterior del slice.',
+            'message': ' ADVERTENCIA: Los cambios realizados son permanentes. No hay forma de recuperar la configuración anterior del slice.',
             'slice_name': slice_obj.nombre
         })
         
@@ -563,6 +566,7 @@ def update_slice(slice_id):
             'success': False,
             'error': f'Error updating slice: {str(e)}'
         }), 500
+
 
 if __name__ == '__main__':
     initialize_database()
